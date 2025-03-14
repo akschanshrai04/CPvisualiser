@@ -1,13 +1,50 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 from django.db import models
 
-class CpUser(AbstractUser):
-    leetcode_handle = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    codeforces_handle = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    codechef_handle = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    atcoder_handle = models.CharField(max_length=100, unique=True, null=True, blank=True)
-    friends = models.ManyToManyField("self", blank=True)
 
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **kwargs):
+        # We will definitely need an email address to create a user.
+        if not email:
+            raise ValueError("Users must have an email address")
+
+        email = self.normalize_email(email)  # Convert the domain part to lowercase.
+        email = email.lower()
+
+        user = self.model(email=email, **kwargs)
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **kwargs):
+        """
+        Creates and saves a superuser with the given email, date of
+        birth and password.
+        """
+        user = self.create_user(email, password=password, **kwargs)
+        user.is_staff = True
+        user.is_superuser = True
+        user.save(using=self._db)
+        return user
+
+
+class CpUser(AbstractBaseUser):
+    email = models.EmailField(
+        unique=True,
+        max_length=255,
+    )
+    first_name = models.CharField(max_length=30)
+    last_name = models.CharField(max_length=30)
+
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["first_name", "last_name"]
 
     def __str__(self):
-        return self.username
+        return self.email
